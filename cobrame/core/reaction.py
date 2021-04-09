@@ -96,7 +96,7 @@ class MEReaction(Reaction):
             Stoichiometry dictionary with updated entries
         """
 
-        process_info = self._model.process_data.get_by_id(process_data_id)
+        process_info = self._model.process_data.get_by_id(process_data_id) 
         for subreaction_id, count in iteritems(process_info.subreactions):
             subreaction_data = \
                 self._model.process_data.get_by_id(subreaction_id)

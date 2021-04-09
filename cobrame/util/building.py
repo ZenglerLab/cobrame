@@ -195,6 +195,7 @@ def convert_aa_codes_and_add_charging(me_model, trna_aa, trna_to_codon,
     # add in all the tRNA charging reactions
     for tRNA, aa in iteritems(trna_aa):
         for codon in trna_to_codon[tRNA]:
+
             trna_data = cobrame.tRNAData("tRNA_" + tRNA + "_" + codon,
                                          me_model, aa.id, "RNA_" + tRNA, codon)
             charging_reaction = \
@@ -286,9 +287,10 @@ def build_reactions_from_genbank(me_model, gb_filename, tu_frame=None,
     # RNA_products will be added so no need to update now
     for tu_id in tu_frame.index:
         # subtract 1 from TU start site to account for 0 indexing
+
         sequence = dogma.extract_sequence(full_seq, tu_frame.start[tu_id]-1,
-                                          tu_frame.stop[tu_id],
-                                          tu_frame.strand[tu_id])
+                                              tu_frame.stop[tu_id],
+                                              tu_frame.strand[tu_id])
 
         add_transcription_reaction(me_model, tu_id, set(), sequence,
                                    update=False)
@@ -298,16 +300,34 @@ def build_reactions_from_genbank(me_model, gb_filename, tu_frame=None,
     for feature in gb_file.features:
 
         # Skip if not a gene used in ME construction
-        if feature.type not in element_types or 'pseudo' in feature.qualifiers:
+        if feature.type not in element_types: #or 'pseudo' in feature.qualifiers:
             continue
 
         # ---- Assign values for all important gene attributes ----
-        bnum = feature.qualifiers["locus_tag"][0]
+        bnum = feature.qualifiers["old_locus_tag"][0] \
+            if 'old_locus_tag' in feature.qualifiers.keys() \
+            else feature.qualifiers["locus_tag"][0]
+
         left_pos = int(feature.location.start)
         right_pos = int(feature.location.end)
-        rna_type = 'mRNA' if feature.type == 'CDS' else feature.type
+        if feature.type == 'CDS':
+            rna_type = 'mRNA'
+        elif feature.type == 'misc_RNA':
+            rna_type = 'ncRNA'
+            print('Processing '+bnum+' as ncRNA')
+        else:
+            rna_type = feature.type
+
+        #rna_type = 'mRNA' if feature.type == 'CDS' else feature.type
         strand = '+' if feature.strand == 1 else '-'
-        seq = dogma.extract_sequence(full_seq, left_pos, right_pos, strand)
+
+        ## Account for non-coding regions (JDTB, )
+        seq = ''
+        for location in feature.location.parts:
+            CDS_left_pos = int(location.start)
+            CDS_right_pos = int(location.end)
+            CDS_strand = '+' if location.strand == 1 else '-'
+            seq = dogma.extract_sequence(full_seq, CDS_left_pos, CDS_right_pos, CDS_strand) + seq
 
         # ---- Add gene metabolites and apply frameshift mutations----
         frameshift_string = frameshift_dict.get(bnum)

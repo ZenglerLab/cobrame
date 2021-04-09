@@ -677,7 +677,11 @@ class TranslationData(ProcessData):
         """
         codons = (self.nucleotide_sequence[i: i + 3]
                   for i in range(0, (len(self.nucleotide_sequence)), 3))
-        amino_acid_sequence = ''.join(dogma.codon_table[i] for i in codons)
+
+        amino_acid_sequence = '' # += instead of = (JDTB)
+        for i in codons:
+            amino_acid_sequence += ''.join(dogma.codon_table[i])
+
         amino_acid_sequence = amino_acid_sequence.rstrip("*")
         if not amino_acid_sequence.startswith('M'):
             # alternate start codons translated as methionine
